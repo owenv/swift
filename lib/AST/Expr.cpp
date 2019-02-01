@@ -354,6 +354,7 @@ ConcreteDeclRef Expr::getReferencedDecl() const {
 
   NO_REFERENCE(Arrow);
   NO_REFERENCE(If);
+  NO_REFERENCE(Case);
   NO_REFERENCE(EnumIsCase);
   NO_REFERENCE(Assign);
   NO_REFERENCE(CodeCompletion);
@@ -663,6 +664,7 @@ bool Expr::canAppendPostfixExpression(bool appendingPostfixOperator) const {
 
   case ExprKind::Arrow:
   case ExprKind::If:
+  case ExprKind::Case:
   case ExprKind::Assign:
   case ExprKind::UnresolvedPattern:
   case ExprKind::EditorPlaceholder:

@@ -472,6 +472,7 @@ namespace {
     RValue visitProtocolMetatypeToObjectExpr(ProtocolMetatypeToObjectExpr *E,
                                              SGFContext C);
     RValue visitIfExpr(IfExpr *E, SGFContext C);
+    RValue visitCaseExpr(CaseExpr *E, SGFContext C);
     
     RValue visitAssignExpr(AssignExpr *E, SGFContext C);
     RValue visitEnumIsCaseExpr(EnumIsCaseExpr *E, SGFContext C);
@@ -4269,6 +4270,12 @@ RValue RValueEmitter::visitIfExpr(IfExpr *E, SGFContext C) {
     return RValue(SGF, E,
                   SGF.manageBufferForExprResult(resultAddr, lowering, C));
   }
+}
+
+RValue RValueEmitter::visitCaseExpr(CaseExpr *E, SGFContext C) {
+  auto i1Ty = SILType::getBuiltinIntegerType(1, SGF.getASTContext());
+  SILValue boolValue = SGF.B.createIntegerLiteral(E, i1Ty, 1);
+  return RValue(SGF, E, ManagedValue::forUnmanaged(boolValue)); //TODO owen
 }
 
 RValue SILGenFunction::emitEmptyTupleRValue(SILLocation loc,

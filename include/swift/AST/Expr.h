@@ -21,6 +21,7 @@
 #include "swift/AST/ConcreteDeclRef.h"
 #include "swift/AST/DeclNameLoc.h"
 #include "swift/AST/FunctionRefKind.h"
+#include "swift/AST/Pattern.h"
 #include "swift/AST/ProtocolConformanceRef.h"
 #include "swift/AST/TypeAlignments.h"
 #include "swift/AST/TypeLoc.h"
@@ -4541,6 +4542,33 @@ public:
   
   static bool classof(const Expr *E) {
     return E->getKind() == ExprKind::If;
+  }
+};
+
+class CaseExpr : public Expr {
+  Pattern *ThePattern;
+  Expr *Initializer;
+  SourceLoc CaseLoc;
+public:
+  CaseExpr(Pattern *ThePattern, Expr *Initializer, SourceLoc CaseLoc, Type Ty = Type()) : Expr(ExprKind::Case, /*Implicit=*/false, Ty), ThePattern(ThePattern), Initializer(Initializer), CaseLoc(CaseLoc) {}
+
+  SourceLoc getLoc() const { return CaseLoc; }
+  SourceLoc getStartLoc() const {
+    return CaseLoc;
+  }
+  SourceLoc getEndLoc() const {
+    return Initializer->getEndLoc();
+  }
+  SourceLoc getCaseLoc() const { return CaseLoc; }
+
+  Pattern *getPattern() const { return ThePattern; }
+  void setPattern(Pattern *P) { ThePattern = P; }
+
+  Expr *getInitializer() const { return Initializer; }
+  void setInitializer(Expr *I) { Initializer = I; }
+
+  static bool classof(const Expr *E) {
+    return E->getKind() == ExprKind::Case;
   }
 };
 

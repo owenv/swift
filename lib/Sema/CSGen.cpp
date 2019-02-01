@@ -2658,6 +2658,25 @@ namespace {
                        CS.getConstraintLocator(expr->getElseExpr()));
       return resultTy;
     }
+
+    Type visitCaseExpr(CaseExpr *expr) {
+
+    // Resolve the pattern.
+    auto *pattern = CS.TC.resolvePattern(expr->getPattern(), CS.DC,
+                                   /*isStmtCondition*/true);
+    
+      expr->setPattern(pattern);
+
+      TypeResolutionOptions options(TypeResolverContext::InExpression);
+      options |= TypeResolutionFlags::AllowUnspecifiedTypes;
+      options |= TypeResolutionFlags::AllowUnboundGenerics;
+      CS.TC.typeCheckPattern(pattern, CS.DC, options);
+      Expr *init = expr->getInitializer();
+      //CS.TC.typeCheckBinding(pattern, init, CS.DC);
+      expr->setPattern(pattern);
+      expr->setInitializer(init);
+      return CS.getTypeChecker().lookupBoolType(CS.DC);
+    }
     
     virtual Type visitImplicitConversionExpr(ImplicitConversionExpr *expr) {
       llvm_unreachable("Already type-checked");

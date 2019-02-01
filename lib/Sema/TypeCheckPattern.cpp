@@ -877,6 +877,7 @@ bool TypeChecker::typeCheckParameterList(ParameterList *PL,
 
 bool TypeChecker::typeCheckPattern(Pattern *P, DeclContext *dc,
                                    TypeResolutionOptions options) {
+  llvm::outs() << "type checking pattern" << P << "\n";
   switch (P->getKind()) {
   // Type-check paren patterns by checking the sub-pattern and
   // propagating that type out.

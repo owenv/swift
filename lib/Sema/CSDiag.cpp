@@ -600,6 +600,7 @@ private:
   bool visitInOutExpr(InOutExpr *IOE);
   bool visitCoerceExpr(CoerceExpr *CE);
   bool visitIfExpr(IfExpr *IE);
+  bool visitCaseExpr(CaseExpr *CE);
   bool visitRebindSelfInConstructorExpr(RebindSelfInConstructorExpr *E);
   bool visitCaptureListExpr(CaptureListExpr *CLE);
   bool visitClosureExpr(ClosureExpr *CE);
@@ -5889,6 +5890,9 @@ bool FailureDiagnosis::visitIfExpr(IfExpr *IE) {
   return true;
 }
 
+  bool FailureDiagnosis::visitCaseExpr(CaseExpr *CE) {
+    return false; //TODO owen
+  }
 
 bool FailureDiagnosis::
 visitRebindSelfInConstructorExpr(RebindSelfInConstructorExpr *E) {

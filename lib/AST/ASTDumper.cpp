@@ -2490,6 +2490,13 @@ public:
     printRec(E->getElseExpr());
     PrintWithColorRAII(OS, ParenthesisColor) << ')';
   }
+  void visitCaseExpr(CaseExpr *E) {
+    printCommon(E, "case_expr") << '\n';
+    printRec(E->getPattern());
+    OS << '\n';
+    printRec(E->getInitializer());
+    PrintWithColorRAII(OS, ParenthesisColor) << ')';
+  }
   void visitAssignExpr(AssignExpr *E) {
     printCommon(E, "assign_expr") << '\n';
     printRec(E->getDest());

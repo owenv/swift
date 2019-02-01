@@ -891,6 +891,18 @@ class Traversal : public ASTVisitor<Traversal, Expr*, Stmt*,
     return E;
   }
 
+  Expr *visitCaseExpr(CaseExpr *E) { //TODO owen
+    Pattern *Pat = doIt(E->getPattern());
+    if (!Pat) return nullptr;
+    E->setPattern(Pat);
+
+    Expr *Init = doIt(E->getInitializer());
+    if (!Init) return nullptr;
+    E->setInitializer(Init);
+
+    return E;
+  }
+
   Expr *visitUnresolvedPatternExpr(UnresolvedPatternExpr *E) {
     Pattern *sub = doIt(E->getSubPattern());
     if (!sub) return nullptr;

@@ -395,6 +395,11 @@ ParserResult<Expr> Parser::parseExprSequenceElement(Diag<> message,
                                                     bool isExprBasic) {
   SyntaxParsingContext ElementContext(SyntaxContext,
                                       SyntaxContextKind::Expr);
+  SourceLoc caseLoc;
+  if (consumeIf(tok::kw_case, caseLoc)) {
+    return parseCaseExpr(message, caseLoc);
+  }
+
   SourceLoc tryLoc;
   bool hadTry = consumeIf(tok::kw_try, tryLoc);
   Optional<Token> trySuffix;
@@ -460,6 +465,38 @@ ParserResult<Expr> Parser::parseExprSequenceElement(Diag<> message,
   }
 
   return sub;
+}
+
+ParserResult<Expr> Parser::parseCaseExpr(Diag<> message, SourceLoc caseLoc) {
+  llvm::SaveAndRestore<decltype(InVarOrLetPattern)>
+      T(InVarOrLetPattern, IVOLP_InMatchingPattern);
+  ParserResult<Pattern> pattern = parseMatchingPattern(true);
+  if (pattern.isNull()) {
+    return nullptr;
+  }
+  pattern = parseOptionalPatternTypeAnnotation(pattern, false);
+
+  ParserResult<Expr> init;
+  if (Tok.is(tok::equal)) {
+    SyntaxParsingContext InitCtxt(SyntaxContext, SyntaxKind::InitializerClause);
+    consumeToken();
+    init = parseExprBasic(diag::expected_expr_conditional_var);
+  } else {
+    diagnose(Tok, diag::conditional_var_initializer_required);
+  }
+  /*if (!Tok.is(tok::equal)) {
+        diagnose(caseLoc, diag::expected_colon_after_if_question);
+
+        return makeParserErrorResult(new (Context) ErrorExpr(
+            {caseLoc, pattern.get()->getSourceRange().End}));
+      }
+      
+      SourceLoc equalLoc = consumeToken();
+      ParserResult<Expr> expr = parseExpr(message);
+      if (expr.isNull()) {
+        return nullptr;
+      }*/
+      return makeParserResult(new (Context) CaseExpr(pattern.get(), init.get(), caseLoc));
 }
 
 static Expr *formUnaryArgument(ASTContext &context, Expr *argument) {

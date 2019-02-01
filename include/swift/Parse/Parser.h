@@ -1248,6 +1248,7 @@ public:
   ParserResult<Expr> parseExprUnary(Diag<> ID, bool isExprBasic);
   ParserResult<Expr> parseExprKeyPathObjC();
   ParserResult<Expr> parseExprKeyPath();
+  ParserResult<Expr> parseCaseExpr(Diag<> message, SourceLoc caseLoc);
   ParserResult<Expr> parseExprSelector();
   ParserResult<Expr> parseExprSuper(bool isExprBasic);
   ParserResult<Expr> parseExprConfiguration();

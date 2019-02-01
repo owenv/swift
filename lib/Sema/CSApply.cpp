@@ -3235,6 +3235,14 @@ namespace {
 
       return expr;
     }
+
+    Expr *visitCaseExpr(CaseExpr *expr) {
+      auto &cs = getConstraintSystem();
+      auto &tc = cs.getTypeChecker();
+      //expr->setPattern();
+      cs.setType(expr, tc.lookupBoolType(cs.DC));
+      return expr;
+    }
     
     Expr *visitImplicitConversionExpr(ImplicitConversionExpr *expr) {
       llvm_unreachable("Already type-checked");
