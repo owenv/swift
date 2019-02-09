@@ -1014,95 +1014,77 @@ copyOrInitValueInto(SILGenFunction &SGF, SILLocation loc,
 
 namespace {
 
-/// InitializationForPattern - A visitor for traversing a pattern, generating
-/// SIL code to allocate the declared variables, and generating an
-/// Initialization representing the needed initializations.
-///
-/// It is important that any Initialization created for a pattern that might
-/// not have an immediate initializer implement finishUninitialized.  Note
-/// that this only applies to irrefutable patterns.
-struct InitializationForPattern
-  : public PatternVisitor<InitializationForPattern, InitializationPtr>
-{
-  SILGenFunction &SGF;
 
-  /// This is the place that should be jumped to if the pattern fails to match.
-  /// This is invalid for irrefutable pattern initializations.
-  JumpDest patternFailDest;
 
-  InitializationForPattern(SILGenFunction &SGF, JumpDest patternFailDest)
-    : SGF(SGF), patternFailDest(patternFailDest) {}
+} // end anonymous namespace
 
-  // Paren, Typed, and Var patterns are noops, just look through them.
-  InitializationPtr visitParenPattern(ParenPattern *P) {
+// Paren, Typed, and Var patterns are noops, just look through them.
+InitializationPtr InitializationForPattern::visitParenPattern(ParenPattern *P) {
     return visit(P->getSubPattern());
-  }
-  InitializationPtr visitTypedPattern(TypedPattern *P) {
+}
+InitializationPtr InitializationForPattern::visitTypedPattern(TypedPattern *P) {
     return visit(P->getSubPattern());
-  }
-  InitializationPtr visitVarPattern(VarPattern *P) {
+}
+InitializationPtr InitializationForPattern::visitVarPattern(VarPattern *P) {
     return visit(P->getSubPattern());
-  }
+}
 
-  // AnyPatterns (i.e, _) don't require any storage. Any value bound here will
-  // just be dropped.
-  InitializationPtr visitAnyPattern(AnyPattern *P) {
+// AnyPatterns (i.e, _) don't require any storage. Any value bound here will
+// just be dropped.
+InitializationPtr InitializationForPattern::visitAnyPattern(AnyPattern *P) {
     return InitializationPtr(new BlackHoleInitialization());
-  }
+}
 
-  // Bind to a named pattern by creating a memory location and initializing it
-  // with the initial value.
-  InitializationPtr visitNamedPattern(NamedPattern *P) {
+// Bind to a named pattern by creating a memory location and initializing it
+// with the initial value.
+InitializationPtr InitializationForPattern::visitNamedPattern(NamedPattern *P) {
     if (!P->getDecl()->hasName()) {
-      // Unnamed parameters don't require any storage. Any value bound here will
-      // just be dropped.
-      return InitializationPtr(new BlackHoleInitialization());
+        // Unnamed parameters don't require any storage. Any value bound here will
+        // just be dropped.
+        return InitializationPtr(new BlackHoleInitialization());
     }
-
+    
     return SGF.emitInitializationForVarDecl(P->getDecl(), P->getDecl()->isLet());
-  }
+}
 
-  // Bind a tuple pattern by aggregating the component variables into a
-  // TupleInitialization.
-  InitializationPtr visitTuplePattern(TuplePattern *P) {
+// Bind a tuple pattern by aggregating the component variables into a
+// TupleInitialization.
+InitializationPtr InitializationForPattern::visitTuplePattern(TuplePattern *P) {
     TupleInitialization *init = new TupleInitialization();
     for (auto &elt : P->getElements())
-      init->SubInitializations.push_back(visit(elt.getPattern()));
+        init->SubInitializations.push_back(visit(elt.getPattern()));
     return InitializationPtr(init);
-  }
+}
 
-  InitializationPtr visitEnumElementPattern(EnumElementPattern *P) {
+InitializationPtr InitializationForPattern::visitEnumElementPattern(EnumElementPattern *P) {
     InitializationPtr subInit;
     if (auto *subP = P->getSubPattern())
-      subInit = visit(subP);
+        subInit = visit(subP);
     auto *res = new EnumElementPatternInitialization(P->getElementDecl(),
                                                      std::move(subInit),
                                                      patternFailDest);
     return InitializationPtr(res);
-  }
-  InitializationPtr visitOptionalSomePattern(OptionalSomePattern *P) {
+}
+InitializationPtr InitializationForPattern::visitOptionalSomePattern(OptionalSomePattern *P) {
     InitializationPtr subInit = visit(P->getSubPattern());
     auto *res = new EnumElementPatternInitialization(P->getElementDecl(),
                                                      std::move(subInit),
                                                      patternFailDest);
     return InitializationPtr(res);
-  }
-  InitializationPtr visitIsPattern(IsPattern *P) {
+}
+InitializationPtr InitializationForPattern::visitIsPattern(IsPattern *P) {
     InitializationPtr subInit;
     if (auto *subP = P->getSubPattern())
-      subInit = visit(subP);
+        subInit = visit(subP);
     return InitializationPtr(new IsPatternInitialization(P, std::move(subInit),
                                                          patternFailDest));
-  }
-  InitializationPtr visitBoolPattern(BoolPattern *P) {
+}
+InitializationPtr InitializationForPattern::visitBoolPattern(BoolPattern *P) {
     return InitializationPtr(new BoolPatternInitialization(P, patternFailDest));
-  }
-  InitializationPtr visitExprPattern(ExprPattern *P) {
+}
+InitializationPtr InitializationForPattern::visitExprPattern(ExprPattern *P) {
     return InitializationPtr(new ExprPatternInitialization(P, patternFailDest));
-  }
-};
-
-} // end anonymous namespace
+}
 
 InitializationPtr
 SILGenFunction::emitInitializationForVarDecl(VarDecl *vd, bool forceImmutable) {

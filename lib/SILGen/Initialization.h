@@ -21,6 +21,9 @@
 #include "ManagedValue.h"
 #include "swift/SIL/AbstractionPattern.h"
 #include "llvm/ADT/TinyPtrVector.h"
+#include "swift/AST/ASTVisitor.h"
+#include "swift/AST/Pattern.h"
+#include "JumpDest.h"
 #include <memory>
 
 namespace swift {
@@ -300,6 +303,49 @@ public:
 
   void finishUninitialized(SILGenFunction &SGF) override;
 };
+    
+    /// InitializationForPattern - A visitor for traversing a pattern, generating
+    /// SIL code to allocate the declared variables, and generating an
+    /// Initialization representing the needed initializations.
+    ///
+    /// It is important that any Initialization created for a pattern that might
+    /// not have an immediate initializer implement finishUninitialized.  Note
+    /// that this only applies to irrefutable patterns.
+    struct InitializationForPattern
+    : public PatternVisitor<InitializationForPattern, InitializationPtr>
+    {
+        SILGenFunction &SGF;
+        
+        /// This is the place that should be jumped to if the pattern fails to match.
+        /// This is invalid for irrefutable pattern initializations.
+        JumpDest patternFailDest;
+        
+        InitializationForPattern(SILGenFunction &SGF, JumpDest patternFailDest)
+        : SGF(SGF), patternFailDest(patternFailDest) {}
+        
+        // Paren, Typed, and Var patterns are noops, just look through them.
+        InitializationPtr visitParenPattern(ParenPattern *P);
+        InitializationPtr visitTypedPattern(TypedPattern *P);
+        InitializationPtr visitVarPattern(VarPattern *P);
+        
+        // AnyPatterns (i.e, _) don't require any storage. Any value bound here will
+        // just be dropped.
+        InitializationPtr visitAnyPattern(AnyPattern *P);
+        
+        // Bind to a named pattern by creating a memory location and initializing it
+        // with the initial value.
+        InitializationPtr visitNamedPattern(NamedPattern *P);
+        
+        // Bind a tuple pattern by aggregating the component variables into a
+        // TupleInitialization.
+        InitializationPtr visitTuplePattern(TuplePattern *P);
+        
+        InitializationPtr visitEnumElementPattern(EnumElementPattern *P);
+        InitializationPtr visitOptionalSomePattern(OptionalSomePattern *P);
+        InitializationPtr visitIsPattern(IsPattern *P);
+        InitializationPtr visitBoolPattern(BoolPattern *P);
+        InitializationPtr visitExprPattern(ExprPattern *P);
+    };
 
 } // end namespace Lowering
 } // end namespace swift

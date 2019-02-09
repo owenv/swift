@@ -4273,9 +4273,54 @@ RValue RValueEmitter::visitIfExpr(IfExpr *E, SGFContext C) {
 }
 
 RValue RValueEmitter::visitCaseExpr(CaseExpr *E, SGFContext C) {
-  auto i1Ty = SILType::getBuiltinIntegerType(1, SGF.getASTContext());
+  /*auto i1Ty = SILType::getBuiltinIntegerType(1, SGF.getASTContext());
   SILValue boolValue = SGF.B.createIntegerLiteral(E, i1Ty, 1);
-  return RValue(SGF, E, ManagedValue::forUnmanaged(boolValue)); //TODO owen
+  return RValue(SGF, E, ManagedValue::forUnmanaged(boolValue)); //TODO owen*/
+    
+    ExitableFullExpr outerscope(SGF, CleanupLocation::get(E));
+    
+    auto i1Ty = SILType::getBuiltinIntegerType(1, SGF.getASTContext());
+    
+    // Emit the initial value into the initialization.
+    SILBasicBlock *falseBB = SGF.B.splitBlockForFallthrough();
+    JumpDest falseDest = JumpDest(falseBB, SGF.Cleanups.getCleanupsDepth(), CleanupLocation(E));
+
+    InitializationPtr initialization =
+    InitializationForPattern(SGF, falseDest).visit(E->getPattern());
+    //SILBasicBlock *trueBB = SGF.B.splitBlockForFallthrough();
+    //FullExpr Scope(SGF.Cleanups, CleanupLocation(E->getInitializer()));
+    SGF.emitExprInto(E->getInitializer(), initialization.get());
+    //SGF.B.setInsertionPoint(trueBB);
+    {
+    //ExitableFullExpr scope(SGF, CleanupLocation::get(E));
+    SILValue yes = SGF.B.createIntegerLiteral(E, i1Ty, 1);
+    SGF.Cleanups.emitBranchAndCleanups(outerscope.getExitDest(), E, yes);
+    }
+    
+    SGF.B.setInsertionPoint(falseBB);
+    {
+    //ExitableFullExpr scope(SGF, CleanupLocation::get(E));
+    SILValue no = SGF.B.createIntegerLiteral(E, i1Ty, 0);
+    SGF.Cleanups.emitBranchAndCleanups(outerscope.getExitDest(), E, no);
+    }
+    
+    auto contBB = outerscope.exit();
+    auto isa = contBB->createPhiArgument(i1Ty, ValueOwnershipKind::Any);
+    
+    
+    
+// Call the Bool(_builtinBooleanLiteral:) initializer
+ASTContext &ctx = SGF.getASTContext();
+auto init = ctx.getBoolBuiltinInitDecl();
+Type builtinArgType = BuiltinIntegerType::get(1, ctx);
+RValue builtinArg(SGF, ManagedValue::forUnmanaged(isa),
+                      builtinArgType->getCanonicalType());
+auto result =
+SGF.emitApplyAllocatingInitializer(E, ConcreteDeclRef(init),
+                                    std::move(builtinArg), Type(),
+                                   C);
+    
+return result;
 }
 
 RValue SILGenFunction::emitEmptyTupleRValue(SILLocation loc,
