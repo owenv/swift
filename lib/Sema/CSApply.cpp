@@ -35,6 +35,8 @@
 #include "llvm/ADT/SmallString.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/SaveAndRestore.h"
+#include "TypeCheckType.h"
+
 
 using namespace swift;
 using namespace constraints;
@@ -3240,7 +3242,12 @@ namespace {
       auto &cs = getConstraintSystem();
       auto &tc = cs.getTypeChecker();
       //expr->setPattern();
+        Pattern *p = expr->getPattern();
+        tc.coercePatternToType(p, TypeResolution::forContextual(cs.DC), simplifyType(cs.getType(expr->getInitializer())), TypeResolverContext::InExpression);
+        expr->setPattern(p);
       cs.setType(expr, tc.lookupBoolType(cs.DC));
+        cs.cacheExprTypes(expr); 
+        cs.setExprTypes(expr);
       return expr;
     }
     

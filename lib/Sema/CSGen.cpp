@@ -2666,15 +2666,23 @@ namespace {
                                    /*isStmtCondition*/true);
     
       expr->setPattern(pattern);
-
-      TypeResolutionOptions options(TypeResolverContext::InExpression);
-      options |= TypeResolutionFlags::AllowUnspecifiedTypes;
-      options |= TypeResolutionFlags::AllowUnboundGenerics;
-      CS.TC.typeCheckPattern(pattern, CS.DC, options);
-      Expr *init = expr->getInitializer();
+        ConstraintLocator *Locator = CS.getConstraintLocator(expr->getInitializer());
+        
+        // Collect constraints from the pattern.
+        Type initType = CS.generateConstraints(pattern, Locator);
+        
+        
+        // Add a conversion constraint between the types.
+        CS.addConstraint(ConstraintKind::Conversion, CS.getType(expr->getInitializer()),
+                         initType, Locator, /*isFavored*/true);
+      //TypeResolutionOptions options(TypeResolverContext::InExpression);
+      //options |= TypeResolutionFlags::AllowUnspecifiedTypes;
+      //options |= TypeResolutionFlags::AllowUnboundGenerics;
+      //CS.TC.typeCheckPattern(pattern, CS.DC, options);
+      //Expr *init = expr->getInitializer();
       //CS.TC.typeCheckBinding(pattern, init, CS.DC);
-      expr->setPattern(pattern);
-      expr->setInitializer(init);
+      //expr->setPattern(pattern);
+      //expr->setInitializer(init);
       return CS.getTypeChecker().lookupBoolType(CS.DC);
     }
     
