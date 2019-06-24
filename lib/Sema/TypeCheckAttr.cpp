@@ -2465,11 +2465,12 @@ void TypeChecker::checkMemberwiseDerivableAttribute(ValueDecl *D) {
   
   // Don't process a declaration twice. This will happen to accessor decls after
   // we have processed their var decls.
-  //if (attr->getReplacedFunction())
-   // return;
+  if (attr->getMapperFunction() && attr->getReducerFunction())
+    return;
   
-  SmallVector<AbstractFunctionDecl *, 4> replacements;
-  SmallVector<AbstractFunctionDecl *, 4> origs;
+  AbstractFunctionDecl *mapperFunction;
+  AbstractFunctionDecl *reducerFunction;
+
   
   // Collect the accessor replacement mapping if this is an abstract storage.
   if (auto *var = dyn_cast<AbstractStorageDecl>(D)) {
@@ -2495,7 +2496,29 @@ void TypeChecker::checkMemberwiseDerivableAttribute(ValueDecl *D) {
       replacements.push_back(fun);
     } else
       return;*/
+    //std::cout << "mapper candidates1:\n";
+
+    auto *fun = cast<AbstractFunctionDecl>(D);
+    SmallVector<ValueDecl *, 4> mapperResults;
+    SmallVector<ValueDecl *, 4> reducerResults;
+    
+    fun->getDeclContext()->getModuleScopeContext()->lookupQualified(fun->getDeclContext()->getParentModule(), attr->getMapperFunctionName(),
+                                                                    NL_QualifiedDefault, mapperResults);
+    for(auto result: mapperResults) {
+      mapperFunction = cast<AbstractFunctionDecl>(result);
+      break;
+    }
+    
+    fun->getDeclContext()->getModuleScopeContext()->lookupQualified(fun->getDeclContext()->getParentModule(), attr->getReducerFunctionName(),
+                                                                    NL_QualifiedDefault, reducerResults);
+    for(auto result: reducerResults) {
+      reducerFunction = cast<AbstractFunctionDecl>(result);
+      break;
+    }
   }
+  
+  attr->setMapperFunction(mapperFunction);
+  attr->setReducerFunction(reducerFunction);
   
   // Annotate the replacement with the original func decl.
   /*for (auto index : indices(replacements)) {

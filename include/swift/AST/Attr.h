@@ -1316,12 +1316,20 @@ public:
       return mapperFunction;
     }
     
+    void setMapperFunction(AbstractFunctionDecl *mapper) {
+      mapperFunction = mapper;
+    }
+    
     DeclName getReducerFunctionName() const {
       return reducerFunctionName;
     }
     
     AbstractFunctionDecl *getReducerFunction() const {
       return reducerFunction;
+    }
+    
+    void setReducerFunction(AbstractFunctionDecl *reducer) {
+      reducerFunction = reducer;
     }
     
     Expr *getReduceInitialResultExpr() const {
