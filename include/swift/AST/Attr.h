@@ -1290,6 +1290,48 @@ public:
     return DA->getKind() == DAK_Specialize;
   }
 };
+  
+  /// Defines the @memberwiseDerivable attribute.
+  class MemberwiseDerivableAttr : public DeclAttribute {
+  private:
+    DeclName mapperFunctionName;
+    AbstractFunctionDecl *mapperFunction;
+    DeclName reducerFunctionName;
+    AbstractFunctionDecl *reducerFunction;
+    Expr *reduceInitialResultExpr;
+  public:
+    static MemberwiseDerivableAttr *
+    create(ASTContext &Context, SourceLoc AtLoc, SourceLoc RParenLoc, DeclName mapperFunctionName, DeclName reducerFunctionName, Expr *reduceInitialResultExpr);
+    
+    MemberwiseDerivableAttr(SourceLoc AtLoc, SourceRange Range, DeclName mapperFunctionName, DeclName reducerFunctionName, Expr *reduceInitialResultExpr)
+    : DeclAttribute(DAK_MemberwiseDerivable, AtLoc, Range, false), mapperFunctionName(mapperFunctionName), reducerFunctionName(reducerFunctionName), reduceInitialResultExpr(reduceInitialResultExpr) {
+      
+    }
+    
+    DeclName getMapperFunctionName() const {
+      return mapperFunctionName;
+    }
+    
+    AbstractFunctionDecl *getMapperFunction() const {
+      return mapperFunction;
+    }
+    
+    DeclName getReducerFunctionName() const {
+      return reducerFunctionName;
+    }
+    
+    AbstractFunctionDecl *getReducerFunction() const {
+      return reducerFunction;
+    }
+    
+    Expr *getReduceInitialResultExpr() const {
+      return reduceInitialResultExpr;
+    }
+    
+    static bool classof(const DeclAttribute *DA) {
+      return DA->getKind() == DAK_MemberwiseDerivable;
+    }
+  };
 
 /// The @_implements attribute, which treats a decl as the implementation for
 /// some named protocol requirement (but otherwise not-visible by that name).

@@ -1629,6 +1629,121 @@ bool Parser::parseNewDeclAttribute(DeclAttributes &Attributes, SourceLoc AtLoc,
     }
     break;
   }
+    case DAK_MemberwiseDerivable: {
+      // Parse the leading '('.
+      if (Tok.isNot(tok::l_paren)) {
+        diagnose(Loc, diag::attr_expected_lparen, AttrName,
+                 DeclAttribute::isDeclModifier(DK));
+        return false;
+      }
+      
+      SourceLoc LParenLoc = consumeToken(tok::l_paren);
+      DeclName mapperFunction;
+      DeclName reducerFunction;
+      Expr *reduceInitialResult;
+      {
+        SyntaxParsingContext ContentContext(
+                                            SyntaxContext, SyntaxKind::NamedAttributeStringArgument);
+        
+        // Parse 'for'.
+        if (Tok.getText() != "mapper") {
+          diagnose(Loc, diag::attr_dynamic_replacement_expected_for);
+          return false;
+        }
+        auto MapperLoc = consumeToken();
+        
+        // Parse ':'.
+        if (Tok.getText() != ":") {
+          diagnose(MapperLoc, diag::attr_dynamic_replacement_expected_colon);
+          return false;
+        }
+        consumeToken(tok::colon);
+        {
+          SyntaxParsingContext ContentContext(SyntaxContext,
+                                              SyntaxKind::DeclName);
+          
+          DeclNameLoc loc;
+          mapperFunction = parseUnqualifiedDeclName(
+                                                      true, loc, diag::attr_dynamic_replacement_expected_function,
+                                                      /*allowOperators*/ true, /*allowZeroArgCompoundNames*/ true,
+                                                      /*allowDeinitAndSubscript*/ true);
+        }
+        
+        if (Tok.getText() != ",") {
+          diagnose(MapperLoc, diag::attr_dynamic_replacement_expected_colon);
+          return false;
+        }
+        consumeToken(tok::comma);
+        
+        // Parse 'reducer'.
+        if (Tok.getText() != "reducer") {
+          diagnose(Loc, diag::attr_dynamic_replacement_expected_for);
+          return false;
+        }
+        auto ReducerLoc = consumeToken();
+        
+        // Parse ':'.
+        if (Tok.getText() != ":") {
+          diagnose(ReducerLoc, diag::attr_dynamic_replacement_expected_colon);
+          return false;
+        }
+        consumeToken(tok::colon);
+        {
+          SyntaxParsingContext ContentContext(SyntaxContext,
+                                              SyntaxKind::DeclName);
+          
+          DeclNameLoc loc;
+          reducerFunction = parseUnqualifiedDeclName(
+                                                      true, loc, diag::attr_dynamic_replacement_expected_function,
+                                                      /*allowOperators*/ true, /*allowZeroArgCompoundNames*/ true,
+                                                      /*allowDeinitAndSubscript*/ true);
+        }
+        
+        if (Tok.getText() != ",") {
+          diagnose(ReducerLoc, diag::attr_dynamic_replacement_expected_colon);
+          return false;
+        }
+        consumeToken(tok::comma);
+        
+        // Parse 'reduceInitialResult'.
+        if (Tok.getText() != "reduceInitialResult") {
+          diagnose(Loc, diag::attr_dynamic_replacement_expected_for);
+          return false;
+        }
+        auto ValueLoc = consumeToken();
+        
+        // Parse ':'.
+        if (Tok.getText() != ":") {
+          diagnose(ValueLoc, diag::attr_dynamic_replacement_expected_colon);
+          return false;
+        }
+        consumeToken(tok::colon);
+        {
+          SyntaxParsingContext ContentContext(SyntaxContext,
+                                              SyntaxKind::DeclName);
+          
+          DeclNameLoc loc;
+          reduceInitialResult = parseExprBasic(diag::attr_dynamic_replacement_expected_colon).getPtrOrNull();
+        }
+      }
+      
+      
+      
+      // Parse the matching ')'.
+      SourceLoc RParenLoc;
+      bool Invalid = parseMatchingToken(
+                                        tok::r_paren, RParenLoc, diag::attr_dynamic_replacement_expected_rparen,
+                                        LParenLoc);
+      if (Invalid) {
+        return false;
+      }
+      
+      
+      MemberwiseDerivableAttr *attr = MemberwiseDerivableAttr::create(
+                                                                    Context, AtLoc, RParenLoc, mapperFunction, reducerFunction, reduceInitialResult);
+      Attributes.add(attr);
+      break;
+    }
   }
 
   if (DuplicateAttribute) {

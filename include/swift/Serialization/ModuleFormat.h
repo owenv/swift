@@ -1649,6 +1649,14 @@ namespace decls_block {
     BCVBR<4>,   // # of arguments (+1) or zero if no name
     BCArray<IdentifierIDField>
   >;
+  
+  using MemberwiseDerivableDeclAttrLayout = BCRecordLayout<
+  DynamicReplacement_DECL_ATTR,
+  BCFixed<1>, // implicit flag
+  DeclIDField, // replaced function
+  BCVBR<4>,   // # of arguments (+1) or zero if no name
+  BCArray<IdentifierIDField>
+  >;
 
   using CustomDeclAttrLayout = BCRecordLayout<
     Custom_DECL_ATTR,

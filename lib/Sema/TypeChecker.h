@@ -1050,6 +1050,7 @@ public:
   void checkDeclAttributes(Decl *D);
   void checkParameterAttributes(ParameterList *params);
   void checkDynamicReplacementAttribute(ValueDecl *D);
+  void checkMemberwiseDerivableAttribute(ValueDecl *D);
   static ValueDecl *findReplacedDynamicFunction(const ValueDecl *d);
   void checkTypeModifyingDeclAttributes(VarDecl *var);
 

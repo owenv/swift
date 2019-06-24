@@ -1277,6 +1277,7 @@ namespace  {
     UNINTERESTING_ATTR(FixedLayout)
     UNINTERESTING_ATTR(Lazy)
     UNINTERESTING_ATTR(LLDBDebuggerFunction)
+    UNINTERESTING_ATTR(MemberwiseDerivable)
     UNINTERESTING_ATTR(Mutating)
     UNINTERESTING_ATTR(NonMutating)
     UNINTERESTING_ATTR(NonObjC)

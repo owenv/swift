@@ -3144,6 +3144,10 @@ public:
     if (FD->getAttrs().hasAttribute<DynamicReplacementAttr>()) {
       TC.checkDynamicReplacementAttribute(FD);
     }
+    
+    if (FD->getAttrs().hasAttribute<MemberwiseDerivableAttr>()) {
+      TC.checkMemberwiseDerivableAttribute(FD);
+    }
 
     TC.checkParameterAttributes(FD->getParameters());
 

@@ -715,6 +715,8 @@ StringRef DeclAttribute::getAttrName() const {
     }
     llvm_unreachable("Invalid inline kind");
   }
+    case DAK_MemberwiseDerivable:
+      return "memberwiseDerivable";
   case DAK_Optimize: {
     switch (cast<OptimizeAttr>(this)->getMode()) {
     case OptimizationMode::NoOptimization:
@@ -1151,6 +1153,11 @@ TypeLoc ImplementsAttr::getProtocolType() const {
 
 TypeLoc &ImplementsAttr::getProtocolType() {
   return ProtocolType;
+}
+
+MemberwiseDerivableAttr *
+MemberwiseDerivableAttr::create(ASTContext &Context, SourceLoc AtLoc, SourceLoc RParenLoc, DeclName mapperFunctionName, DeclName reducerFunctionName, Expr *reduceInitialResultExpr) {
+  return new (Context) MemberwiseDerivableAttr(AtLoc, SourceRange(AtLoc, RParenLoc), mapperFunctionName, reducerFunctionName, reduceInitialResultExpr);
 }
 
 CustomAttr::CustomAttr(SourceLoc atLoc, SourceRange range, TypeLoc type,

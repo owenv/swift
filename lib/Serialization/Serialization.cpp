@@ -2501,7 +2501,8 @@ class Serializer::DeclSerializer : public DeclVisitor<DeclSerializer> {
           S.addDeclRef(theAttr->getReplacedFunction()), pieces.size(), pieces);
       return;
     }
-
+      case DAK_MemberwiseDerivable:
+        return;
     case DAK_Custom: {
       auto abbrCode = S.DeclTypeAbbrCodes[CustomDeclAttrLayout::Code];
       auto theAttr = cast<CustomAttr>(DA);

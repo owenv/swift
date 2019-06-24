@@ -128,6 +128,7 @@ public:
   IGNORED_ATTR(WeakLinked)
   IGNORED_ATTR(DynamicReplacement)
   IGNORED_ATTR(PrivateImport)
+  IGNORED_ATTR(MemberwiseDerivable)
   IGNORED_ATTR(Custom)
   IGNORED_ATTR(PropertyWrapper)
   IGNORED_ATTR(DisfavoredOverload)
@@ -850,6 +851,8 @@ public:
 
   void visitDiscardableResultAttr(DiscardableResultAttr *attr);
   void visitImplementsAttr(ImplementsAttr *attr);
+  
+  void visitMemberwiseDerivableAttr(MemberwiseDerivableAttr *attr);
 
   void visitFrozenAttr(FrozenAttr *attr);
 
@@ -2443,6 +2446,110 @@ void TypeChecker::checkDynamicReplacementAttribute(ValueDecl *D) {
   D->getAttrs().removeAttribute(attr);
 }
 
+#include <iostream>
+void TypeChecker::checkMemberwiseDerivableAttribute(ValueDecl *D) {
+  std::cout << "test\n";
+  D->dump();
+  assert(isa<AbstractFunctionDecl>(D) || isa<AbstractStorageDecl>(D));
+  
+  auto *attr = D->getAttrs().getAttribute<MemberwiseDerivableAttr>();
+  assert(attr);
+  attr->getReduceInitialResultExpr()->dump();
+  
+  if (!isa<ProtocolDecl>(D->getDeclContext())) {
+    diagnose(attr->getLocation(), diag::dynamic_replacement_not_in_extension,
+             D->getBaseName());
+    attr->setInvalid();
+    return;
+  }
+  
+  // Don't process a declaration twice. This will happen to accessor decls after
+  // we have processed their var decls.
+  //if (attr->getReplacedFunction())
+   // return;
+  
+  SmallVector<AbstractFunctionDecl *, 4> replacements;
+  SmallVector<AbstractFunctionDecl *, 4> origs;
+  
+  // Collect the accessor replacement mapping if this is an abstract storage.
+  if (auto *var = dyn_cast<AbstractStorageDecl>(D)) {
+    /*for (auto *accessor : var->getAllAccessors()) {
+      validateDecl(accessor);
+      if (accessor->isImplicit())
+        continue;
+      auto *orig = findReplacedAccessor(attr->getReplacedFunctionName(),
+                                        accessor, attr, *this);
+      if (attr->isInvalid())
+        return;
+      if (!orig)
+        continue;
+      origs.push_back(orig);
+      replacements.push_back(accessor);
+    }*/
+  } else {
+    // Otherwise, find the matching function.
+   /* auto *fun = cast<AbstractFunctionDecl>(D);
+    if (auto *orig = findReplacedFunction(attr->getReplacedFunctionName(), fun,
+                                          attr, this)) {
+      origs.push_back(orig);
+      replacements.push_back(fun);
+    } else
+      return;*/
+  }
+  
+  // Annotate the replacement with the original func decl.
+  /*for (auto index : indices(replacements)) {
+    if (auto *attr = replacements[index]
+        ->getAttrs()
+        .getAttribute<DynamicReplacementAttr>()) {
+      auto *replacedFun = origs[index];
+      auto *replacement = replacements[index];
+      if (replacedFun->isObjC() && !replacement->isObjC()) {
+        diagnose(attr->getLocation(),
+                 diag::dynamic_replacement_replacement_not_objc_dynamic,
+                 attr->getReplacedFunctionName());
+        attr->setInvalid();
+        return;
+      }
+      if (!replacedFun->isObjC() && replacement->isObjC()) {
+        diagnose(attr->getLocation(),
+                 diag::dynamic_replacement_replaced_not_objc_dynamic,
+                 attr->getReplacedFunctionName());
+        attr->setInvalid();
+        return;
+      }
+      attr->setReplacedFunction(replacedFun);
+      continue;
+    }
+    auto *newAttr = DynamicReplacementAttr::create(
+                                                   D->getASTContext(), attr->getReplacedFunctionName(), origs[index]);
+    DeclAttributes &attrs = replacements[index]->getAttrs();
+    attrs.add(newAttr);
+  }*/
+  /*if (auto *CD = dyn_cast<ConstructorDecl>(D)) {
+    auto *attr = CD->getAttrs().getAttribute<DynamicReplacementAttr>();
+    auto replacedIsConvenienceInit =
+    cast<ConstructorDecl>(attr->getReplacedFunction())->isConvenienceInit();
+    if (replacedIsConvenienceInit &&!CD->isConvenienceInit()) {
+      diagnose(attr->getLocation(),
+               diag::dynamic_replacement_replaced_constructor_is_convenience,
+               attr->getReplacedFunctionName());
+    } else if (!replacedIsConvenienceInit && CD->isConvenienceInit()) {
+      diagnose(
+               attr->getLocation(),
+               diag::dynamic_replacement_replaced_constructor_is_not_convenience,
+               attr->getReplacedFunctionName());
+    }
+  }*/
+  
+  
+  // Remove the attribute on the abstract storage (we have moved it to the
+  // accessor decl).
+  if (!isa<AbstractStorageDecl>(D))
+    return;
+  D->getAttrs().removeAttribute(attr);
+}
+
 void AttributeChecker::visitImplementsAttr(ImplementsAttr *attr) {
   TypeLoc &ProtoTypeLoc = attr->getProtocolType();
   TypeResolutionOptions options = None;
@@ -2487,6 +2594,10 @@ void AttributeChecker::visitImplementsAttr(ImplementsAttr *attr) {
                 diag::implements_attr_non_protocol_type)
       .highlight(ProtoTypeLoc.getTypeRepr()->getSourceRange());
   }
+}
+
+void AttributeChecker::visitMemberwiseDerivableAttr(MemberwiseDerivableAttr *attr) {
+  
 }
 
 void AttributeChecker::visitFrozenAttr(FrozenAttr *attr) {
