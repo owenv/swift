@@ -100,6 +100,8 @@ public:
                                             NominalTypeDecl *nominal,
                                             ValueDecl *requirement);
 
+  
+  ValueDecl *deriveMemberwiseRequirement(ProtocolDecl *protocol, ValueDecl *requirement, MemberwiseDerivableAttr *attr);
   /// Derive a CaseIterable requirement for an enum if it has no associated
   /// values for any of its cases.
   ///

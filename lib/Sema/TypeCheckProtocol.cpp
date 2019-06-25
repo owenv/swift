@@ -5222,10 +5222,11 @@ ValueDecl *TypeChecker::deriveProtocolRequirement(DeclContext *DC,
   // Note: whenever you update this function, also update
   // DerivedConformance::getDerivableRequirement.
   auto *protocol = cast<ProtocolDecl>(Requirement->getDeclContext());
-
+                                                    
+  auto *derivableAttr = Requirement->getAttrs().getAttribute<MemberwiseDerivableAttr>();
   auto knownKind = protocol->getKnownProtocolKind();
   
-  if (!knownKind)
+  if (!knownKind && !derivableAttr)
     return nullptr;
 
   auto Decl = DC->getInnermostDeclarationDeclContext();
@@ -5233,6 +5234,10 @@ ValueDecl *TypeChecker::deriveProtocolRequirement(DeclContext *DC,
     return nullptr;
 
   DerivedConformance derived(*this, Decl, TypeDecl, protocol);
+                                                    
+  if (derivableAttr) {
+    return derived.deriveMemberwiseRequirement(protocol, Requirement, derivableAttr);
+  }
 
   switch (*knownKind) {
   case KnownProtocolKind::RawRepresentable:

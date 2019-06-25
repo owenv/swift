@@ -50,6 +50,7 @@ Type DerivedConformance::getProtocolType() const {
 bool DerivedConformance::derivesProtocolConformance(DeclContext *DC,
                                                     NominalTypeDecl *Nominal,
                                                     ProtocolDecl *Protocol) {
+                                                      return true;
   // Only known protocols can be derived.
   auto knownProtocol = Protocol->getKnownProtocolKind();
   if (!knownProtocol)
@@ -161,6 +162,9 @@ ValueDecl *DerivedConformance::getDerivableRequirement(TypeChecker &tc,
   ASTContext &ctx = nominal->getASTContext();
   auto name = requirement->getFullName();
 
+  if (requirement->getAttrs().getAttribute<MemberwiseDerivableAttr>()) {
+   return requirement;
+  }
   // Local function that retrieves the requirement with the same name as
   // the provided requirement, but within the given known protocol.
   auto getRequirement = [&](KnownProtocolKind kind) -> ValueDecl * {
@@ -389,4 +393,100 @@ bool DerivedConformance::checkAndDiagnoseDisallowedContext(
   }
 
   return false;
+}
+
+ValueDecl *deriveMemberwiseFunctionRequirement(DerivedConformance &derived, ProtocolDecl *protocol, AbstractFunctionDecl *requirementFuncDecl, MemberwiseDerivableAttr *attr) {
+  ASTContext &C = derived.TC.Context;
+  
+  auto parentDC = derived.getConformanceContext();
+  auto selfIfaceTy = parentDC->getDeclaredInterfaceType();
+  
+  auto getParamDecl = [&](StringRef s) -> ParamDecl * {
+    auto *param = new (C) ParamDecl(VarDecl::Specifier::Default, SourceLoc(),
+                                    SourceLoc(), Identifier(), SourceLoc(),
+                                    C.getIdentifier(s), parentDC);
+    param->setInterfaceType(selfIfaceTy);
+    return param;
+  };
+  
+  ParameterList *params = ParameterList::create(C, {
+    getParamDecl("a"),
+    getParamDecl("b")
+  });
+  
+  auto boolTy = C.getBoolDecl()->getDeclaredType();
+  
+  Identifier generatedIdentifier;
+  if (parentDC->getParentModule()->isResilient()) {
+    generatedIdentifier = C.Id_EqualsOperator;
+  } else if (selfIfaceTy->getEnumOrBoundGenericEnum()) {
+    generatedIdentifier = C.Id_derived_enum_equals;
+  } else {
+    assert(selfIfaceTy->getStructOrBoundGenericStruct());
+    generatedIdentifier = C.Id_derived_struct_equals;
+  }
+  
+  DeclName name(C, generatedIdentifier, params);
+  auto eqDecl =
+  FuncDecl::create(C, /*StaticLoc=*/SourceLoc(),
+                   StaticSpellingKind::KeywordStatic,
+                   /*FuncLoc=*/SourceLoc(), name, /*NameLoc=*/SourceLoc(),
+                   /*Throws=*/false, /*ThrowsLoc=*/SourceLoc(),
+                   /*GenericParams=*/nullptr,
+                   params,
+                   TypeLoc::withoutLoc(boolTy),
+                   parentDC);
+  eqDecl->setImplicit();
+  eqDecl->setUserAccessible(false);
+  eqDecl->getAttrs().add(new (C) InfixAttr(/*implicit*/false));
+  
+  // Add the @_implements(Equatable, ==(_:_:)) attribute
+  if (generatedIdentifier != C.Id_EqualsOperator) {
+    auto equatableProto = C.getProtocol(KnownProtocolKind::Equatable);
+    auto equatableTy = equatableProto->getDeclaredType();
+    auto equatableTypeLoc = TypeLoc::withoutLoc(equatableTy);
+    SmallVector<Identifier, 2> argumentLabels = { Identifier(), Identifier() };
+    auto equalsDeclName = DeclName(C, DeclBaseName(C.Id_EqualsOperator),
+                                   argumentLabels);
+    eqDecl->getAttrs().add(new (C) ImplementsAttr(SourceLoc(),
+                                                  SourceRange(),
+                                                  equatableTypeLoc,
+                                                  equalsDeclName,
+                                                  DeclNameLoc()));
+  }
+  
+  if (!C.getEqualIntDecl()) {
+    derived.TC.diagnose(derived.ConformanceDecl->getLoc(),
+                        diag::no_equal_overload_for_int);
+    return nullptr;
+  }
+  
+  eqDecl->setBodySynthesizer(bodySynthesizer);
+  
+  // Compute the interface type.
+  if (auto genericEnv = parentDC->getGenericEnvironmentOfContext())
+    eqDecl->setGenericEnvironment(genericEnv);
+  eqDecl->computeType();
+  
+  eqDecl->copyFormalAccessFrom(derived.Nominal, /*sourceIsParentContext*/ true);
+  eqDecl->setValidationToChecked();
+  
+  C.addSynthesizedDecl(eqDecl);
+  
+  // Add the operator to the parent scope.
+  derived.addMembersToConformanceContext({eqDecl});
+  
+  return eqDecl;
+  return requirementFuncDecl;
+}
+
+ValueDecl *DerivedConformance::deriveMemberwiseRequirement(ProtocolDecl *protocol, ValueDecl *requirement, MemberwiseDerivableAttr *attr) {
+  //abort();
+  //if (checkAndDiagnoseDisallowedContext(requirement))
+  //  return nullptr;
+  
+  if (auto func = dyn_cast<AbstractFunctionDecl>(requirement)) {
+    return deriveMemberwiseFunctionRequirement(this, protocol, func, attr);
+  }
+  return requirement;
 }
