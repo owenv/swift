@@ -5424,15 +5424,16 @@ Expr *ExprRewriter::coerceCallArguments(
       for (auto argIdx : varargIndices) {
         auto arg = getArg(argIdx);
         auto argType = cs.getType(arg);
+        auto paramType = isa<VarargExpansionExpr>(arg) ? param.getParameterType() : param.getPlainType();
 
         // If the argument type exactly matches, this just works.
-        if (argType->isEqual(param.getPlainType())) {
+        if (argType->isEqual(paramType)) {
           variadicArgs.push_back(arg);
           continue;
         }
 
         // Convert the argument.
-        auto convertedArg = coerceToType(arg, param.getPlainType(),
+        auto convertedArg = coerceToType(arg, paramType,
                                          getArgLocator(argIdx, paramIdx));
         if (!convertedArg)
           return nullptr;
