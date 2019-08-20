@@ -6311,7 +6311,7 @@ diagnoseAmbiguousMultiStatementClosure(ClosureExpr *closure) {
       // before the in token.
       if (closure->getInLoc().isValid()) {
         diagnose(closure->getLoc(), diag::cannot_infer_closure_result_type)
-            .fixItInsert(closure->getInLoc(), fixIt::insert_closure_return_type,
+            .fixItInsert(closure->getInLoc(), nullptr, fixIt::insert_closure_return_type,
                          resultType, false);
         return true;
       }
@@ -6323,7 +6323,7 @@ diagnoseAmbiguousMultiStatementClosure(ClosureExpr *closure) {
       // As such, we insert " () -> ReturnType in " right after the '{' that
       // starts the closure body.
       diagnose(closure->getLoc(), diag::cannot_infer_closure_result_type)
-          .fixItInsertAfter(closure->getBody()->getLBraceLoc(),
+          .fixItInsertAfter(closure->getBody()->getLBraceLoc(), nullptr,
                             fixIt::insert_closure_return_type, resultType,
                             true);
       return true;

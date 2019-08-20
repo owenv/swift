@@ -202,21 +202,21 @@ namespace swift {
     /// diagnostic.
     template <typename... ArgTypes>
     InFlightDiagnostic &
-    fixItReplace(SourceRange R, StructuredFixIt<ArgTypes...> fixIt,
+    fixItReplace(SourceRange R, DeclContext *DC, StructuredFixIt<ArgTypes...> fixIt,
                  typename detail::PassArgument<ArgTypes>::type... VArgs) {
       SmallVector<DiagnosticArgument, 3> Args;
       DiagnosticArgument DiagArgs[] = {
         DiagnosticArgument(0), std::move(VArgs)...
       };
       Args.append(DiagArgs + 1, DiagArgs + 1 + sizeof...(VArgs));
-      return fixItReplace(R, fixItStringFor(fixIt.ID), std::move(Args));
+      return fixItReplace(R, fixItStringFor(fixIt.ID), std::move(Args), DC);
     }
 
     /// Add a character-based replacement fix-it to the currently-active
     /// diagnostic.
     template <typename... ArgTypes>
     InFlightDiagnostic &
-    fixItReplaceChars(SourceLoc Start, SourceLoc End,
+    fixItReplaceChars(SourceLoc Start, SourceLoc End, DeclContext *DC,
                       StructuredFixIt<ArgTypes...> fixIt,
                       typename detail::PassArgument<ArgTypes>::type... VArgs) {
       SmallVector<DiagnosticArgument, 3> Args;
@@ -225,58 +225,58 @@ namespace swift {
       };
       Args.append(DiagArgs + 1, DiagArgs + 1 + sizeof...(VArgs));
       return fixItReplaceChars(Start, End, fixItStringFor(fixIt.ID),
-                               std::move(Args));
+                               std::move(Args), DC);
     }
 
     /// Add an insertion fix-it to the currently-active diagnostic.
     template <typename... ArgTypes>
     InFlightDiagnostic &
-    fixItInsert(SourceLoc L, StructuredFixIt<ArgTypes...> fixIt,
+    fixItInsert(SourceLoc L, DeclContext *DC, StructuredFixIt<ArgTypes...> fixIt,
                 typename detail::PassArgument<ArgTypes>::type... VArgs) {
       SmallVector<DiagnosticArgument, 3> Args;
       DiagnosticArgument DiagArgs[] = {
         DiagnosticArgument(0), std::move(VArgs)...
       };
       Args.append(DiagArgs + 1, DiagArgs + 1 + sizeof...(VArgs));
-      return fixItReplaceChars(L, L, fixItStringFor(fixIt.ID), std::move(Args));
+      return fixItReplaceChars(L, L, fixItStringFor(fixIt.ID), std::move(Args), DC);
     }
 
     /// Add an insertion fix-it to the currently-active diagnostic.  The
     /// text is inserted immediately *after* the token specified.
     template <typename... ArgTypes>
     InFlightDiagnostic &
-    fixItInsertAfter(SourceLoc L, StructuredFixIt<ArgTypes...> fixIt,
+    fixItInsertAfter(SourceLoc L, DeclContext *DC, StructuredFixIt<ArgTypes...> fixIt,
                      typename detail::PassArgument<ArgTypes>::type... VArgs) {
       SmallVector<DiagnosticArgument, 3> Args;
       DiagnosticArgument DiagArgs[] = {
         DiagnosticArgument(0), std::move(VArgs)...
       };
       Args.append(DiagArgs + 1, DiagArgs + 1 + sizeof...(VArgs));
-      return fixItInsertAfter(L, fixItStringFor(fixIt.ID), std::move(Args));
+      return fixItInsertAfter(L, fixItStringFor(fixIt.ID), std::move(Args), DC);
     }
 
     /// Add a token-based replacement fix-it to the currently-active
     /// diagnostic.
     InFlightDiagnostic &fixItReplace(SourceRange R, StringRef Str) {
-      return fixItReplace(R, Str, {});
+      return fixItReplace(R, Str, {}, nullptr);
     }
 
     /// Add a character-based replacement fix-it to the currently-active
     /// diagnostic.
     InFlightDiagnostic &fixItReplaceChars(SourceLoc Start, SourceLoc End,
                                           StringRef Str) {
-      return fixItReplaceChars(Start, End, Str, {});
+      return fixItReplaceChars(Start, End, Str, {}, nullptr);
     }
 
     /// Add an insertion fix-it to the currently-active diagnostic.
     InFlightDiagnostic &fixItInsert(SourceLoc L, StringRef Str) {
-      return fixItReplaceChars(L, L, Str, {});
+      return fixItReplaceChars(L, L, Str, {}, nullptr);
     }
 
     /// Add an insertion fix-it to the currently-active diagnostic.  The
     /// text is inserted immediately *after* the token specified.
     InFlightDiagnostic &fixItInsertAfter(SourceLoc L, StringRef Str) {
-      return fixItInsertAfter(L, Str, {});
+      return fixItInsertAfter(L, Str, {}, nullptr);
     }
     
     /// Add a token-based removal fix-it to the currently-active
@@ -295,19 +295,23 @@ namespace swift {
     
     private:
     InFlightDiagnostic &fixItReplace(SourceRange R, StringRef Str,
-                                     ArrayRef<DiagnosticArgument> Args);
+                                     ArrayRef<DiagnosticArgument> Args,
+                                     DeclContext *DC);
 
     InFlightDiagnostic &fixItReplaceChars(SourceLoc Start, SourceLoc End,
                                           StringRef Str,
-                                          ArrayRef<DiagnosticArgument> Args);
+                                          ArrayRef<DiagnosticArgument> Args,
+                                          DeclContext *DC);
 
     InFlightDiagnostic &fixItInsert(SourceLoc L, StringRef Str,
-                                    ArrayRef<DiagnosticArgument> Args) {
-      return fixItReplaceChars(L, L, Str, Args);
+                                    ArrayRef<DiagnosticArgument> Args,
+                                    DeclContext *DC) {
+      return fixItReplaceChars(L, L, Str, Args, DC);
     }
 
     InFlightDiagnostic &fixItInsertAfter(SourceLoc L, StringRef,
-                                         ArrayRef<DiagnosticArgument> Args);
+                                         ArrayRef<DiagnosticArgument> Args,
+                                         DeclContext *DC);
   };
 
   /// Class to track, map, and remap diagnostic severity and fatality

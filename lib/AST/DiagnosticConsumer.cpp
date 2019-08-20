@@ -40,7 +40,7 @@ llvm::SMFixIt DiagnosticConsumer::getRawFixIt(SourceManager &SM,
   llvm::raw_svector_ostream Out(Text);
   DiagnosticFormatting::formatDiagnosticText(
       Out, F.getText(), F.getArgs(),
-      DiagnosticFormatOptions::formatForFixits());
+      DiagnosticFormatOptions::formatForFixits(), F.getDeclContext(), F.getRange().getStart());
   return llvm::SMFixIt(getRawRange(SM, F.getRange()), Text);
 }
 

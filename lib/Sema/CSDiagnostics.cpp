@@ -2248,6 +2248,7 @@ bool ContextualFailure::tryTypeCoercionFixIt(
       toType = OptionalType::get(toType);
     diagnostic.fixItInsert(Lexer::getLocForEndOfToken(getASTContext().SourceMgr,
                                                       anchor->getEndLoc()),
+                           getDC(),
                            fixIt::insert_type_coercion, canUseAs, toType);
     return true;
   }
@@ -3092,10 +3093,10 @@ bool AllowTypeOrInstanceMemberFailure::diagnoseAsError() {
       auto type = NTD->getSelfInterfaceType();
       if (auto *SE = dyn_cast<SubscriptExpr>(getRawAnchor())) {
         auto *baseExpr = SE->getBase();
-        Diag->fixItReplace(baseExpr->getSourceRange(), fixIt::replace_with_type,
+        Diag->fixItReplace(baseExpr->getSourceRange(), nullptr, fixIt::replace_with_type,
                            type);
       } else {
-        Diag->fixItInsert(loc, fixIt::insert_type_qualification, type);
+        Diag->fixItInsert(loc, nullptr, fixIt::insert_type_qualification, type);
       }
     }
 

@@ -48,16 +48,19 @@ struct DiagnosticInfo {
     CharSourceRange Range;
     std::string Text;
     SmallVector<DiagnosticArgument, 3> Args;
+    DeclContext *DC;
 
   public:
-    FixIt(CharSourceRange R, StringRef Str, ArrayRef<DiagnosticArgument> Args)
-        : Range(R), Text(Str), Args(Args.begin(), Args.end()) {}
+    FixIt(CharSourceRange R, StringRef Str, ArrayRef<DiagnosticArgument> Args,
+          DeclContext *DC)
+        : Range(R), Text(Str), Args(Args.begin(), Args.end()), DC(DC) {}
 
     CharSourceRange getRange() const { return Range; }
     StringRef getText() const {
       return Text;
     }
     ArrayRef<DiagnosticArgument> getArgs() const { return Args; }
+    DeclContext *getDeclContext() const { return DC; }
   };
 
   /// Extra source ranges that are attached to the diagnostic.

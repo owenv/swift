@@ -19,6 +19,7 @@
 #include "swift/AST/ASTContext.h"
 #include "swift/AST/Decl.h"
 #include "swift/AST/Module.h"
+#include "swift/AST/NameLookup.h"
 #include "swift/AST/Pattern.h"
 #include "swift/AST/TypeRepr.h"
 
@@ -171,6 +172,8 @@ static void formatDiagnosticArgument(StringRef Modifier,
                                      StringRef ModifierArguments,
                                      ArrayRef<DiagnosticArgument> Args,
                                      unsigned ArgIndex,
+                                     DeclContext *DC,
+                                     SourceLoc InsertionLoc,
                                      DiagnosticFormatOptions FormatOpts,
                                      llvm::raw_ostream &Out) {
   const DiagnosticArgument &Arg = Args[ArgIndex];
@@ -238,7 +241,26 @@ static void formatDiagnosticArgument(StringRef Modifier,
       type = type->getWithoutSyntaxSugar();
     }
 
-    bool isAmbiguous = typeSpellingIsAmbiguous(type, Args);
+    bool isAmbiguous = false;
+    
+    if (DC) {
+      auto Func = [&isAmbiguous, DC](Type Ty) -> Type {
+        if (auto nominalTy = Ty->getAnyNominal()) {
+          UnqualifiedLookup lookup(nominalTy->getBaseName(),
+                                   DC, nullptr,
+                                   SourceLoc(),
+                                   UnqualifiedLookup::Flags::TypeLookup);
+          auto res = lookup.getSingleTypeResult()->getDeclaredInterfaceType();
+          isAmbiguous = isAmbiguous || !res->isEqual(nominalTy->getDeclaredInterfaceType());
+        }
+        return Ty;
+      };
+      type.transform(Func);
+    } else {
+      // Fall back to disambiguating against the other diagnostic arguments
+      // if a DeclContext isn't available
+      isAmbiguous = typeSpellingIsAmbiguous(type, Args);
+    }
 
     if (isAmbiguous && isa<OpaqueTypeArchetypeType>(type.getPointer())) {
       auto opaqueTypeDecl = type->castTo<OpaqueTypeArchetypeType>()->getDecl();
@@ -357,7 +379,7 @@ static void formatDiagnosticArgument(StringRef Modifier,
 /// buffer.
 void DiagnosticFormatting::formatDiagnosticText(
     llvm::raw_ostream &Out, StringRef InText, ArrayRef<DiagnosticArgument> Args,
-    DiagnosticFormatOptions FormatOpts) {
+    DiagnosticFormatOptions FormatOpts, DeclContext *DC, SourceLoc InsertionLoc) {
   while (!InText.empty()) {
     size_t Percent = InText.find('%');
     if (Percent == StringRef::npos) {
@@ -410,6 +432,6 @@ void DiagnosticFormatting::formatDiagnosticText(
 
     // Convert the argument to a string.
     formatDiagnosticArgument(Modifier, ModifierArguments, Args, ArgIndex,
-                             FormatOpts, Out);
+                             DC, InsertionLoc, FormatOpts, Out);
   }
 }

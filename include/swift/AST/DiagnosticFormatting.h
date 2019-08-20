@@ -271,7 +271,8 @@ namespace DiagnosticFormatting {
 void formatDiagnosticText(
     llvm::raw_ostream &Out, StringRef InText,
     ArrayRef<DiagnosticArgument> FormatArgs,
-    DiagnosticFormatOptions FormatOpts = DiagnosticFormatOptions());
+    DiagnosticFormatOptions FormatOpts = DiagnosticFormatOptions(),
+    DeclContext *DC = nullptr, SourceLoc InsertionLoc = SourceLoc());
 
 } // end namespace DiagnosticFormatting
 } // end namespace swift

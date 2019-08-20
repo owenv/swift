@@ -170,9 +170,9 @@ InFlightDiagnostic &InFlightDiagnostic::highlightChars(SourceLoc Start,
 ///
 InFlightDiagnostic &
 InFlightDiagnostic::fixItInsertAfter(SourceLoc L, StringRef Str,
-                                     ArrayRef<DiagnosticArgument> Args) {
+                                     ArrayRef<DiagnosticArgument> Args, DeclContext *DC) {
   L = Lexer::getLocForEndOfToken(Engine->SourceMgr, L);
-  return fixItInsert(L, Str, std::move(Args));
+  return fixItInsert(L, Str, std::move(Args), DC);
 }
 
 /// Add a token-based removal fix-it to the currently-active
@@ -196,13 +196,13 @@ InFlightDiagnostic &InFlightDiagnostic::fixItRemove(SourceRange R) {
     charRange = CharSourceRange(charRange.getStart(),
                                 charRange.getByteLength()+1);
   }
-  Engine->getActiveDiagnostic().addFixIt(Diagnostic::FixIt(charRange, {}, {}));
+  Engine->getActiveDiagnostic().addFixIt(Diagnostic::FixIt(charRange, {}, {}, nullptr));
   return *this;
 }
 
 InFlightDiagnostic &
 InFlightDiagnostic::fixItReplace(SourceRange R, StringRef Str,
-                                 ArrayRef<DiagnosticArgument> Args) {
+                                 ArrayRef<DiagnosticArgument> Args, DeclContext *DC) {
   if (Str.empty())
     return fixItRemove(R);
 
@@ -224,19 +224,20 @@ InFlightDiagnostic::fixItReplace(SourceRange R, StringRef Str,
   }
 
   Engine->getActiveDiagnostic().addFixIt(
-      Diagnostic::FixIt(charRange, Str, std::move(Args)));
+      Diagnostic::FixIt(charRange, Str, std::move(Args), DC));
   return *this;
 }
 
 InFlightDiagnostic &
 InFlightDiagnostic::fixItReplaceChars(SourceLoc Start, SourceLoc End,
                                       StringRef Str,
-                                      ArrayRef<DiagnosticArgument> Args) {
+                                      ArrayRef<DiagnosticArgument> Args,
+                                      DeclContext *DC) {
   assert(IsActive && "Cannot modify an inactive diagnostic");
   if (Engine && Start.isValid())
     Engine->getActiveDiagnostic().addFixIt(
         Diagnostic::FixIt(toCharSourceRange(Engine->SourceMgr, Start, End), Str,
-                          std::move(Args)));
+                          std::move(Args), DC));
   return *this;
 }
 
@@ -253,9 +254,9 @@ InFlightDiagnostic &InFlightDiagnostic::fixItExchange(SourceRange R1,
   auto text2 = SM.extractText(charRange2);
 
   Engine->getActiveDiagnostic().addFixIt(
-      Diagnostic::FixIt(charRange1, text2, {}));
+      Diagnostic::FixIt(charRange1, text2, {}, nullptr));
   Engine->getActiveDiagnostic().addFixIt(
-      Diagnostic::FixIt(charRange2, text1, {}));
+      Diagnostic::FixIt(charRange2, text1, {}, nullptr));
   return *this;
 }
 
