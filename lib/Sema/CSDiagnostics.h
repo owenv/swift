@@ -1589,6 +1589,18 @@ private:
       llvm::function_ref<void(TypeRepr *, GenericTypeParamType *)> callback);
 };
 
+class UnableToInferComplexClosureReturnTypeFailure final
+    : public FailureDiagnostic {
+public:
+  UnableToInferComplexClosureReturnTypeFailure(Expr *root, ConstraintSystem &cs,
+                                               ConstraintLocator *locator)
+      : FailureDiagnostic(root, cs, locator) {}
+
+  ClosureExpr *getClosureExpr() { return dyn_cast<ClosureExpr>(getAnchor()); }
+
+  bool diagnoseAsError() override;
+};
+
 class SkipUnhandledConstructInFunctionBuilderFailure final
     : public FailureDiagnostic {
 public:

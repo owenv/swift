@@ -180,6 +180,8 @@ enum class FixKind : uint8_t {
   /// associated with single declaration.
   ExplicitlySpecifyGenericArguments,
 
+  InferComplexClosureReturnType,
+
   /// Skip any unhandled constructs that occur within a closure argument that
   /// matches up with a
   /// parameter that has a function builder.
@@ -1229,6 +1231,22 @@ private:
   MutableArrayRef<GenericTypeParamType *> getParametersBuf() {
     return {getTrailingObjects<GenericTypeParamType *>(), NumMissingParams};
   }
+};
+
+class InferComplexClosureReturnType final : public ConstraintFix {
+
+  InferComplexClosureReturnType(ConstraintSystem &cs,
+                                ConstraintLocator *locator)
+      : ConstraintFix(cs, FixKind::InferComplexClosureReturnType, locator) {}
+
+public:
+  std::string getName() const override {
+    return "infer complex closure return type";
+  }
+
+  static bool attempt(ConstraintSystem &cs, ConstraintLocator *locator);
+
+  bool diagnose(Expr *root, bool asNote = false) const override;
 };
 
 class SkipUnhandledConstructInFunctionBuilder final : public ConstraintFix {

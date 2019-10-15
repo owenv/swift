@@ -365,25 +365,35 @@ StepResult ComponentStep::take(bool prevFailed) {
       auto *locator = typeVar->getImpl().getLocator();
 
       auto *anchor = locator->getAnchor();
-      if (!(anchor && locator->isForGenericParameter()))
+      if (!anchor)
         return finalize(/*isSuccess=*/false);
 
-      // Increment the score for every missing generic argument
-      // to make ranking of the solutions with different number
-      // of generic arguments easier.
-      CS.increaseScore(ScoreKind::SK_Fix);
-      // Default argument to `Any`.
-      CS.assignFixedType(typeVar, CS.getASTContext().TheAnyType);
-      // Note that this generic argument has been given a default value.
-      CS.DefaultedConstraints.push_back(locator);
+      if (locator->isLastElement<LocatorPathElt::ClosureResult>()) {
+        if (!InferComplexClosureReturnType::attempt(CS, locator))
+          continue;
+      }
 
-      auto path = locator->getPath();
-      // Let's drop `generic parameter '...'` part of the locator to
-      // group all of the missing generic parameters related to the
-      // same path together.
-      defaultableGenericParams[CS.getConstraintLocator(anchor,
-                                                       path.drop_back())]
-          .push_back(locator->getGenericParameter());
+      if (locator->isForGenericParameter()) {
+        // Increment the score for every missing generic argument
+        // to make ranking of the solutions with different number
+        // of generic arguments easier.
+        CS.increaseScore(ScoreKind::SK_Fix);
+        // Default argument to `Any`.
+        CS.assignFixedType(typeVar, CS.getASTContext().TheAnyType);
+        // Note that this generic argument has been given a default value.
+        CS.DefaultedConstraints.push_back(locator);
+
+        auto path = locator->getPath();
+        // Let's drop `generic parameter '...'` part of the locator to
+        // group all of the missing generic parameters related to the
+        // same path together.
+        defaultableGenericParams[CS.getConstraintLocator(anchor,
+                                                         path.drop_back())]
+            .push_back(locator->getGenericParameter());
+        continue;
+      }
+
+      return finalize(/*isSuccess=*/false);
     }
 
     for (const auto &missing : defaultableGenericParams) {

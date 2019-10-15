@@ -661,6 +661,29 @@ ExplicitlySpecifyGenericArguments *ExplicitlySpecifyGenericArguments::create(
   return new (mem) ExplicitlySpecifyGenericArguments(cs, params, locator);
 }
 
+bool InferComplexClosureReturnType::attempt(ConstraintSystem &cs,
+                                            ConstraintLocator *locator) {
+  assert(locator->isLastElement<LocatorPathElt::ClosureResult>() &&
+         "Fix attempted with a locator that isn't a closure result.");
+  auto closureExpr = dyn_cast<ClosureExpr>(locator->getAnchor());
+  auto typeVariable = cs.getResultType(closureExpr)->getAs<TypeVariableType>();
+
+  if (closureExpr->hasSingleExpressionBody() ||
+      closureExpr->hasExplicitResultType())
+    return false;
+
+  cs.assignFixedType(typeVariable, cs.getASTContext().TheAnyType);
+  cs.DefaultedConstraints.push_back(locator);
+  auto fix = new (cs.getAllocator()) InferComplexClosureReturnType(cs, locator);
+  return cs.recordFix(fix);
+}
+
+bool InferComplexClosureReturnType::diagnose(Expr *root, bool asNote) const {
+  UnableToInferComplexClosureReturnTypeFailure failure(
+      root, getConstraintSystem(), getLocator());
+  return failure.diagnose(asNote);
+}
+
 SkipUnhandledConstructInFunctionBuilder *
 SkipUnhandledConstructInFunctionBuilder::create(ConstraintSystem &cs,
                                                 UnhandledNode unhandled,
