@@ -547,10 +547,10 @@ public:
     }
 
     std::pair<unsigned, unsigned> StartLC =
-        Context.SourceMgr.getPresumedLineAndColumnForLoc(SR.Start);
+        Context.SourceMgr.getLineAndColumnInBuffer(SR.Start);
 
     std::pair<unsigned, unsigned> EndLC =
-        Context.SourceMgr.getPresumedLineAndColumnForLoc(
+        Context.SourceMgr.getLineAndColumnInBuffer(
             Lexer::getLocForEndOfToken(Context.SourceMgr, SR.End));
 
     Expr *StartLine = IntegerLiteralExpr::createFromUnsigned(Context, StartLC.first);
@@ -618,10 +618,10 @@ public:
     }
 
     std::pair<unsigned, unsigned> StartLC =
-        Context.SourceMgr.getPresumedLineAndColumnForLoc(SR.Start);
+        Context.SourceMgr.getLineAndColumnInBuffer(SR.Start);
 
     std::pair<unsigned, unsigned> EndLC =
-        Context.SourceMgr.getPresumedLineAndColumnForLoc(
+        Context.SourceMgr.getLineAndColumnInBuffer(
             Lexer::getLocForEndOfToken(Context.SourceMgr, SR.End));
 
     Expr *StartLine = IntegerLiteralExpr::createFromUnsigned(Context, StartLC.first);
